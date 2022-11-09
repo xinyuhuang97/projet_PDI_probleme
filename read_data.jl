@@ -11,7 +11,7 @@ function Read_instance(filename, render = 0)
     return file_type, nb_clients, general_info, clients_info, demand_info
 end
 
-function Read_A_type_instance(filename, nb_clients, render=0)
+function Read_A_type_instance(filename, nb_clients, render=1)
     general_info=Any[]
     clients_info=Dict()
     demand_info=Dict()
@@ -75,6 +75,8 @@ function Read_B_type_instance(filename, nb_clients, render=0)
         end
     general_info=[if tryparse(Int,x) != nothing tryparse(Int,x)  else Int(parse(Float64, x))  end for x in general_info  ]
     end
+    print("hi")
+    print(render)
     if render == 1
         println(general_info)
         println(clients_info)
@@ -84,5 +86,5 @@ function Read_B_type_instance(filename, nb_clients, render=0)
 end
 
 dict_type_read=Dict("A"=> Read_A_type_instance, "B"=>Read_B_type_instance)
-Read_instance("PRP_instances/A_014_ABS75_15_2.prp")
+#Read_instance("PRP_instances/A_014_ABS75_15_2.prp")
 #Read_instance("PRP_instances/B_200_instance18.prp")
