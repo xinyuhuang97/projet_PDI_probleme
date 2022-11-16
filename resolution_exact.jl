@@ -25,9 +25,18 @@ function Resolution_exacte(filename)
     d=demand_info
     M=[]
     Mp=[]
-    for j in 1:nb_clients+1
-        push!(M,500000)
-        push!(Mp,500000)
+    for t in 1:nb_t
+        #push!(M,400000)
+        push!(M,min(C, sum((sum(d[i][j] for j = t:nb_t) for i = 1:nb_clients))))
+    end
+    for ind in 1:nb_clients
+        for t in 1:nb_t
+            if t==1
+                push!(Mp,[min(C, sum(d[ind][j] for j = 1:nb_t))])
+            else
+                push!(Mp[ind],min(clients_info[ind][4], Q, sum(d[ind][j] for j = 1:nb_t)))
+            end
+        end
     end
 
     ci0=Array{Float64}(undef, nb_clients+1)
@@ -125,7 +134,7 @@ function Resolution_exacte(filename)
     # contraintes (7) La contrainte ajouté: la variable de visite est à 0 si quantité d'approvisionnement est à 0
     for t in 1:nb_t
         for ind in 2:nb_clients+1
-            @constraint(m,q[ind-1,t]<=Mp[t]*zit[ind-1,t])
+            @constraint(m,q[ind-1,t]<=Mp[ind-1][t]*zit[ind-1,t])
         end
     end
 
@@ -149,13 +158,13 @@ function Resolution_exacte(filename)
     end
 
     #contraintes (11) pour dire
-    #=for t in 1:nb_t
+    for t in 1:nb_t
         for i in 2:nb_clients+1
             for j in 2:nb_clients+1
-                @constraint(m,w[i-1,t]-w[j-1,t]>=q[i-1,t]-Mp[i][t]*(1-x[i,j,t]))
+                @constraint(m,w[i-1,t]-w[j-1,t]>=q[i-1,t]-Mp[i-1][t]*(1-x[i,j,t]))
             end
         end
-    end=#
+    end
 
     #contraintes (12) pour dire
     for t in 1:nb_t
@@ -185,5 +194,5 @@ function Resolution_exacte(filename)
     end
 end
 
-#Resolution_exacte("PRP_instances/A_014_ABS75_15_2.prp")
-Resolution_exacte("PRP_instances/B_200_instance3.prp")
+Resolution_exacte("PRP_instances/A_014_ABS75_15_1.prp")
+#Resolution_exacte("PRP_instances/B_200_instance3.prp")
