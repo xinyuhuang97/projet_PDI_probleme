@@ -7,8 +7,7 @@ const OPTIMAL = JuMP.MathOptInterface.OPTIMAL
 const INFEASIBLE = JuMP.MathOptInterface.INFEASIBLE
 const UNBOUNDED = JuMP.MathOptInterface.DUAL_INFEASIBLE;
 
-
-function Resolution_exacte(filename)
+function model_Bard_Nananukul(filename,mtz=true)
     file_type, nb_clients, general_info, clients_info, demand_info = Read_instance(filename)
 
     nb_t=general_info[3] #nombre de periodes
@@ -157,25 +156,32 @@ function Resolution_exacte(filename)
         @constraint(m,z0t[t]<=k)
     end
 
-    #contraintes (11) pour dire
-    for t in 1:nb_t
-        for i in 2:nb_clients+1
-            for j in 2:nb_clients+1
-                @constraint(m,w[i-1,t]-w[j-1,t]>=q[i-1,t]-Mp[i-1][t]*(1-x[i,j,t]))
+    if mtz==true
+        #contraintes (11) pour dire
+        for t in 1:nb_t
+            for i in 2:nb_clients+1
+                for j in 2:nb_clients+1
+                    @constraint(m,w[i-1,t]-w[j-1,t]>=q[i-1,t]-Mp[i-1][t]*(1-x[i,j,t]))
+                end
+            end
+        end
+
+        #contraintes (12) pour dire
+        for t in 1:nb_t
+            for i in 2:nb_clients+1
+                @constraint(m,0<=w[i-1,t])
+                @constraint(m,w[i-1,t]<=Q*zit[i-1,t])
             end
         end
     end
 
-    #contraintes (12) pour dire
-    for t in 1:nb_t
-        for i in 2:nb_clients+1
-            @constraint(m,0<=w[i-1,t])
-            @constraint(m,w[i-1,t]<=Q*zit[i-1,t])
-        end
-    end
-
     #contraintes (13-16) donnees dans la definition de variables
+    return m
+end
 
+function Resolution_exacte(filename)
+
+    m= model_Bard_Nananukul(filename)
     optimize!(m)
     println("Fin de la résolution du PLNE par le solveur")
 
@@ -194,5 +200,8 @@ function Resolution_exacte(filename)
     end
 end
 
-Resolution_exacte("PRP_instances/A_014_ABS75_15_1.prp")
+Resolution_exacte("PRP_instances/A_005_#ABS1_15_z.prp")
+
+#
+#Resolution_exacte("PRP_instances/A_014_ABS75_15_1.prp")
 #Resolution_exacte("PRP_instances/B_200_instance3.prp")
