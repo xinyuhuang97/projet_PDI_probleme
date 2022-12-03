@@ -31,9 +31,9 @@ function model_Bard_Nananukul(filename,mtz=true)
     for ind in 1:nb_clients
         for t in 1:nb_t
             if t==1
-                push!(Mp,[min(C, sum(d[ind][j] for j = 1:nb_t))])
+                push!(Mp,[min(clients_info[ind][4], Q, sum(d[ind][j] for j = 1:nb_t))])
             else
-                push!(Mp[ind],min(clients_info[ind][4], Q, sum(d[ind][j] for j = 1:nb_t)))
+                push!(Mp[ind],min(clients_info[ind][4], Q, sum(d[ind][j] for j = t:nb_t)))
             end
         end
     end
@@ -42,27 +42,28 @@ function model_Bard_Nananukul(filename,mtz=true)
     cij=Array{Float64, 2}(undef, nb_clients+1, nb_clients+1)
     if file_type=="A"
         for i in 1:nb_clients+1
-            ci0[i]=floor(hypot((clients_info[i-1][1]-clients_info[0][1])^2 + (clients_info[i-1][2]-clients_info[0][2]))^2 +1/2)
+            ci0[i]=floor(hypot(clients_info[i-1][1]-clients_info[0][1], clients_info[i-1][2]-clients_info[0][2]) +1/2)
         end
         for i in 1:nb_clients+1
             for j in 1:nb_clients+1
 
-                cij[i,j]=floor(hypot((clients_info[i-1][1]-clients_info[j-1][1])^2 + (clients_info[i-1][2]-clients_info[j-1][2])^2) +1/2)
+                cij[i,j]=floor(hypot(clients_info[i-1][1]-clients_info[j-1][1],  clients_info[i-1][2]-clients_info[j-1][2]) +1/2)
             end
         end
     end
+
     if file_type=="B"
         mc=general_info[9]
         for i in 1:nb_clients+1
-            ci0[i]=floor(mc*hypot((clients_info[i-1][1]-clients_info[0][1])^2 + (clients_info[i-1][2]-clients_info[0][2])^2 ))
+            ci0[i]=mc*hypot(clients_info[i-1][1]-clients_info[0][1], clients_info[i-1][2]-clients_info[0][2] )
         end
         for i in 1:nb_clients+1
             for j in 1:nb_clients+1
-                cij[i,j]=mc*hypot((clients_info[i-1][1]-clients_info[j-1][1])^2 + (clients_info[i-1][2]-clients_info[j-1][2])^2 )
+                cij[i,j]=mc*hypot(clients_info[i-1][1]-clients_info[j-1][1], clients_info[i-1][2]-clients_info[j-1][2] )
             end
         end
     end
-
+    println(ci0)
     m = Model(CPLEX.Optimizer)
 
     # L'ajout de variables
@@ -85,7 +86,7 @@ function model_Bard_Nananukul(filename,mtz=true)
     @variable(m, w[1:nb_clients, 1:nb_t],lower_bound = 0)
     # Fonction objective
     @objective(m, Min, sum(u*p[t] + f*y[t] + sum(clients_info[ind-1][3]*i[ind,t]  for ind = 2:nb_clients+1 ) +  sum((ci0[ind]*x[ind,ind2,t] for ind2 = 1:nb_clients+1) for ind = 1:nb_clients+1) for t=1:nb_t))
-
+    #2100 + 18000 + 354 +
     # same as in Resolution_heuristique
     # contraintes (1) pour dire "en stock à t-1 + production à t = produite pour tous les revendeurs + en stock à t
     @constraint(m, clients_info[0][5]+p[1]==sum(q[ind-1,1] for ind = 2:nb_clients+1) +i[1,1])
@@ -100,7 +101,7 @@ function model_Bard_Nananukul(filename,mtz=true)
     end
     for t in 2:nb_t
         for ind in 2:nb_clients+1
-            @constraint(m, i[ind,t-1] + q[ind-1,t]==d[ind-1][t-1]+i[ind,t])
+            @constraint(m, i[ind,t-1] + q[ind-1,t]==d[ind-1][t]+i[ind,t])
         end
     end
 
@@ -113,8 +114,8 @@ function model_Bard_Nananukul(filename,mtz=true)
     # same as in Resolution_heuristique
     # contraintes (4) pour dire le stock du producteur est inferieur à son capacoté de stockage
     @constraint(m,clients_info[0][5]<=L0)
-    for t in 2:nb_t
-        @constraint(m,i[1,t-1]<=L0)
+    for t in 1:nb_t
+        @constraint(m,i[1,t]<=L0)
     end
 
     # same as in Resolution_heuristique
@@ -140,14 +141,23 @@ function model_Bard_Nananukul(filename,mtz=true)
     # contraintes (8) pour dire une ville peut au plus être visité au plus par une voiture
     for t in 1:nb_t
         for ind in 2:nb_clients+1
-            @constraint(m,sum(x[ind,ind2,t] for ind2 = 2:(nb_clients+1))==zit[ind-1,t])
+            #=if ind ==1
+                @constraint(m,sum(x[ind,ind2,t] for ind2 = 1:(nb_clients+1))==z0t[t])
+                #@constraint(m,sum(x[ind,ind2,t] +x[ind2,ind,t] for ind2 = 2:(nb_clients+1) )==2*z0t[t])
+            else=#
+            @constraint(m,sum(x[ind,ind2,t] for ind2 = 1:(nb_clients+1))==zit[ind-1,t])
+            #end
         end
     end
 
     #contraintes (9) pour dire
     for t in 1:nb_t
-        for ind in 2:nb_clients+1
-            @constraint(m,sum(x[ind,ind2,t] +x[ind2,ind,t] for ind2 = 2:(nb_clients+1) )==2*zit[ind-1,t])
+        for ind in 1:nb_clients+1
+            if ind ==1
+                @constraint(m,sum(x[ind,ind2,t] +x[ind2,ind,t] for ind2 = 1:(nb_clients+1) )==2*z0t[t])
+            else
+                @constraint(m,sum(x[ind,ind2,t] +x[ind2,ind,t] for ind2 = 1:(nb_clients+1) )==2*zit[ind-1,t])
+            end
         end
     end
 
@@ -156,8 +166,9 @@ function model_Bard_Nananukul(filename,mtz=true)
         @constraint(m,z0t[t]<=k)
     end
 
-    if mtz==true
+    #=if mtz==true
         #contraintes (11) pour dire
+
         for t in 1:nb_t
             for i in 2:nb_clients+1
                 for j in 2:nb_clients+1
@@ -169,11 +180,12 @@ function model_Bard_Nananukul(filename,mtz=true)
         #contraintes (12) pour dire
         for t in 1:nb_t
             for i in 2:nb_clients+1
-                @constraint(m,0<=w[i-1,t])
+                @constraint(m,0.0<=w[i-1,t])
                 @constraint(m,w[i-1,t]<=Q*zit[i-1,t])
             end
         end
-    end
+    end=#
+    #end=
 
     #contraintes (13-16) donnees dans la definition de variables
     return m
@@ -189,10 +201,11 @@ function Resolution_exacte(filename)
     println(status)
     # un petit affichage sympathique
     if status == JuMP.MathOptInterface.OPTIMAL
-        q_vals = value.(q)
-        #println(q_vals)
-        z_vals = value.(zit)
-
+        #"x[$j,$noeud_actuel,$t]")
+        q_vals = value(variable_by_name(m,"q[1,1]"))
+        println(q_vals)
+        z_vals = variable_by_name(m,"zit")#value.(zit)
+        println("valeur objective:",objective_value(m))
         println("Temps de résolution :", solve_time(m))
         return objective_value(m),q_vals,z_vals
     else
@@ -200,8 +213,7 @@ function Resolution_exacte(filename)
     end
 end
 
-Resolution_exacte("PRP_instances/A_005_#ABS1_15_z.prp")
+#Resolution_exacte("PRP_instances/A_005_#ABS1_15_z.prp")
 
-#
 #Resolution_exacte("PRP_instances/A_014_ABS75_15_1.prp")
-#Resolution_exacte("PRP_instances/B_200_instance3.prp")
+#Resolution_exacte("PRP_instances/B_200_instance18.prp")

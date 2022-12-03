@@ -24,7 +24,7 @@ function Resolution_heuristique(filename)
     #L00=clients_info[1,5] #le stock intial pour le producteur
     d=demand_info
     M=[]
-    for j in 1:nb_clients
+    for j in 1:nb_t
         push!(M,500000)
     end
 
@@ -70,7 +70,7 @@ function Resolution_heuristique(filename)
         #L0=clients_info[0][4] #capacite de stockage pour le producteur
         #L00=clients_info[1,5] #le stock intial pour le producteur
         #d=demand_info
-
+        print(M,nb_clients)
     	m = Model(CPLEX.Optimizer)
 
         # L'ajout de variables
@@ -106,8 +106,8 @@ function Resolution_heuristique(filename)
 
         # contraintes (4) pour dire le stock du producteur est inferieur à son capacoté de stockage
         @constraint(m,clients_info[0][5]<=L0)
-        for t in 2:nb_t
-            @constraint(m,i[1,t-1]<=L0)
+        for t in 1:nb_t
+            @constraint(m,i[1,t]<=L0)
         end
 
         # contraintes (5) pour dire le stock du revendeurs est inferieur à son capacoté de stockage
@@ -157,14 +157,18 @@ function Resolution_heuristique(filename)
         =#
         #Q=general_info[7] #capacite d'un vehicule
         #k=general_info[8] #nombre de vehicules
-        cpt_vehi=1 # compteur de vehicule
+        cpt_vehi=0 # compteur de vehicule
         bool_end=false # boolean pour detercter si on a bien traité tous les villes
         charge_actuel=0
         # Creation d'une dictionnaire de partition donc chaque indice corresponde a une tournee d'un vehicule
         partition=Dict()
         for i in 1:nb_clients
+            if cpt_vehi==0
+                cpt_vehi=1
+            end
             qi=q_vals[i,t]
             # Tester si la quantite d'approvisionnement est a 0
+            println(qi)
             if isapprox(qi, 0.0; atol = 1e-8)
                 continue
             end
@@ -173,72 +177,89 @@ function Resolution_heuristique(filename)
             Si la capacite est depasse -> nouvel indice dans la dictionnaire, l'ajout dans la liste corresponde a l'indice
             Sinon, l'ajout dans la liste directement
             =#
+            println("hi")
             if charge_actuel==0
                 charge_actuel=qi
-                partition[cpt_vehi]=Any[]
+                partition[cpt_vehi]=[]
+                println(partition[cpt_vehi],i)
                 push!(partition[cpt_vehi],i)
             elseif charge_actuel+qi>Q
                 cpt_vehi+=1
                 charge_actuel=qi
-                partition[cpt_vehi]=Any[]
+                partition[cpt_vehi]=[]
+                println(partition[cpt_vehi],i)
                 push!(partition[cpt_vehi],i)
                 #partition[cpt_vehi]=[i]
             else
                 charge_actuel+=qi
+                println(partition[cpt_vehi],i)
                 push!(partition[cpt_vehi],i)
             end
         end
-
+        println("here!!")
+        println(partition)
         #dictionnaire contenant pour chaque tournee l'ordre de tournage
         tsp_partition=Dict()
-        for i in 1:cpt_vehi
-            #Procedure de trouve le plus proche voisin
-            smallest_indice=-1
-            lg=length(partition[i])
-            ordre=Array{Int}(undef,lg)
-            index=-1
-            cpt=1
-            index_ville=true
-            index_min=-1
-            while index_ville==true
-                if index==-1
-                    index=partition[i][1]
-                else
-                    dis_min=0
-                    for index2 in partition[i]
-                        if index !=index2
-                            dist= (clients_info[index][1]-clients_info[index2][1])^2 + (clients_info[index][2]-clients_info[index2][2])^2
-                            if dis_min==0
-                                dis_min=-dist
-                                index_min=index2
-                            else
-                                if dis_min<-dist
+        if length(partition)!=0
+            for i in 1:cpt_vehi
+                println(length(partition))
+
+                #Procedure de trouve le plus proche voisin
+                smallest_indice=-1
+                lg=length(partition[i])
+                ordre=Array{Int}(undef,lg)
+                index=-1
+                cpt=1
+                index_ville=true
+                index_min=-1
+                while index_ville==true
+                    if index==-1
+                        index=partition[i][1]
+                    else
+                        dis_min=0
+                        for index2 in partition[i]
+                            if index !=index2
+                                dist= (clients_info[index][1]-clients_info[index2][1])^2 + (clients_info[index][2]-clients_info[index2][2])^2
+                                if dis_min==0
                                     dis_min=-dist
+                                    index_min=index2
+                                else
+                                    if dis_min<-dist
+                                        dis_min=-dist
+                                    end
                                 end
                             end
                         end
                     end
+                    println(i)
+                    filter!(e->e≠index,partition[i])
+                    if index_min!=-1
+                        index=index_min
+                    end
+                    println("index",index)
+                    ordre[cpt]=index
+                    println(cpt)
+                    if length(partition[i])==1
+                        ordre[cpt]=partition[i][1]
+                        filter!(e->e≠partition[i][1],partition[i])
+                        index_ville=false
+                    end
+                    cpt+=1
                 end
-                filter!(e->e≠index,partition[i])
-                if index_min!=-1
-                    index=index_min
-                end
-                ordre[cpt]=index
-                cpt+=1
-                if length(partition[i])<=1
-                    index_ville=false
-                end
+                println("ordre",ordre)
+                tsp_partition[i]=ordre
             end
-            tsp_partition[i]=ordre
         end
         println(tsp_partition)
         somme_sc_new=0
-        for (key, value) in tsp_partition
-            for j in 1:length(value)-1
-                #println(j)
-                #println("value",value[j])
-                #println(cij[value[j],value[j+1]])
-                somme_sc_new+=cij[value[j],value[j+1]]
+        if length(tsp_partition)!=0
+            for (key, value) in tsp_partition
+                for j in 1:length(value)-1
+                    #println(j)
+                    #println("value",value[j])
+                    #println(cij[value[j],value[j+1]])
+                    somme_sc_new+=cij[value[j],value[j+1]]
+                end
             end
         end
         #somme_sc_new=sum(( cij[value[j],value[j+1]] for j in 1:length(value)-1) for (key, value) in tsp_partition)
@@ -270,4 +291,6 @@ end
 #PLNE_LSP("PRP_instances/B_200_instance1.prp")
 #PLNE_LSP("PRP_instances/B_200_instance3.prp")
 #Resolution_heuristique("PRP_instances/A_014_ABS75_15_2.prp")
-Resolution_heuristique("PRP_instances/B_200_instance3.prp")
+Resolution_heuristique("PRP_instances/A_005_#ABS1_15_z.prp")
+
+#Resolution_heuristique("PRP_instances/B_200_instance3.prp")
