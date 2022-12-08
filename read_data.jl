@@ -75,8 +75,8 @@ function Read_B_type_instance(filename, nb_clients, render=0)
         end
     general_info=[if tryparse(Int,x) != nothing tryparse(Int,x)  else Int(parse(Float64, x))  end for x in general_info  ]
     end
-    print("hi")
-    print(render)
+    #print("hi")
+    #print(render)
     if render == 1
         println(general_info)
         println(clients_info)
