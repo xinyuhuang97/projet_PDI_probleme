@@ -9,7 +9,6 @@ const UNBOUNDED = JuMP.MathOptInterface.DUAL_INFEASIBLE;
 
 function model_Bard_Nananukul(filename;mtz=true)
     file_type, nb_clients, general_info, clients_info, demand_info = Read_instance(filename)
-
     nb_t=general_info[3] #nombre de periodes
     u=general_info[4] #cout unitaire de production
     f=general_info[5] #cout de setup de production
@@ -30,12 +29,17 @@ function model_Bard_Nananukul(filename;mtz=true)
         #push!(M,400000)
         push!(M,min(C, sum((sum(d[i][j] for j = t:nb_t) for i = 1:nb_clients))))
     end
+
     for ind in 1:nb_clients
         for t in 1:nb_t
             if t==1
-                push!(Mp,[min(clients_info[ind][4], Q, sum(d[ind][j] for j = 1:nb_t))])
+                s=sum(d[ind][j] for j = t:nb_t)
+                push!(Mp,[min(clients_info[ind][4], Q, s)])
             else
-                push!(Mp[ind],min(clients_info[ind][4], Q, sum(d[ind][j] for j = t:nb_t)))
+                s=sum(d[ind][j] for j = t:nb_t)
+                #println(s)
+                #println("min",min(clients_info[ind][4], Q, s))
+                push!(Mp[ind],min(clients_info[ind][4], Q, s))
             end
         end
     end
@@ -90,10 +94,10 @@ function model_Bard_Nananukul(filename;mtz=true)
     @variable(m, q[1:nb_clients+1, 1:nb_t]>=0)#,lower_bound = 0 )#lower_bound = 0) #variable d'approvisionnement
     # load of a vehicle before making a delivery to customer i in period t.
     if mtz==true
-        @variable(m, w[1:nb_clients, 1:nb_t]>=0)#,lower_bound = 0)
+        @variable(m, w[1:nb_clients+1, 1:nb_t]>=0)#,lower_bound = 0)
     end
     # Fonction objective
-    @objective(m, Min, sum(u*p[t] + f*y[t] + sum(clients_info[ind-1][3]*I[ind,t]  for ind = 1:nb_clients+1 ) +  sum((2*cij[ind,ind2]*x[ind,ind2,t] for ind2 = 1:nb_clients+1 if ind!=ind2) for ind = 1:nb_clients+1 ) for t=1:nb_t))
+    @objective(m, Min, sum(u*p[t] + f*y[t] + sum(clients_info[ind-1][3]*I[ind,t]  for ind = 1:nb_clients+1 ) +  sum((cij[ind,ind2]*x[ind,ind2,t] for ind2 = 1:nb_clients+1 if ind!=ind2) for ind = 1:nb_clients+1 ) for t=1:nb_t))
     #2100 + 18000 + 354 +
     # same as in Resolution_heuristique
     # contraintes (1) pour dire "en stock à t-1 + production à t = produite pour tous les revendeurs + en stock à t
@@ -104,7 +108,6 @@ function model_Bard_Nananukul(filename;mtz=true)
 
     # same as in Resolution_heuristique
     println("clients_info stock",clients_info[0][5])
-    println(d,d[1][1])
     # contraintes (2) pour dire “L'equivalence : stock à t-1 +approvisionnement à t = demande+stock a l'instant t”
     for ind in 2:nb_clients+1
         #println("clients_info stock",clients_info[ind-1][5],clients_info[ind-1][4])
