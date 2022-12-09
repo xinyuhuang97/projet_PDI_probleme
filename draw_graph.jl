@@ -21,7 +21,7 @@ function draw_all_graph(f,filename)
         #println(savename)
         draw_graph(matrix_x[:,:,i], vec_xNode, vec_yNode,savename)
     end
-    return string(dir,"/",now,"_t")
+    return string(dir,"/",now,"_t"),t
 end
 function draw_graph(mat_arcTwoNodes, vec_xNode, vec_yNode ,savename)
 
@@ -76,7 +76,7 @@ function draw_graph(mat_arcTwoNodes, vec_xNode, vec_yNode ,savename)
     # Plot the graph
     #draw(PNG("karate.png", 16cm, 16cm),graphplot(gr, x=vec_xNode, y=vec_yNode))
     #draw(PNG("karate.png", 16cm, 16cm), graphplot(gr, x=vec_xNode, y=vec_yNode))
-    savefig(graphplot(gr, x=vec_xNode, y=vec_yNode,nodeshape=:circle,nodesize=0.7,edgecolor = :blue,names = [string(i) for i in 1:size(mat_arcTwoNodes, 1)],fontsize = 18,linewidth=2),savename)
+    Plots.savefig(graphplot(gr, x=vec_xNode, y=vec_yNode,nodeshape=:circle,nodesize=0.7,edgecolor = :blue,names = [string(i) for i in 1:size(mat_arcTwoNodes, 1)],fontsize = 18,linewidth=2),savename)
 end
 
 

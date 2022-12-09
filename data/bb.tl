@@ -116,17 +116,20 @@ signal_connect(button_file_chooser, "button-press-event") do widget, event
     #folder, _ = splitdir(f)
 end
 
+#function value_changed(sl)
 
 
-signal_connect(button_run, "button-press-event") do widget, event
+
+signal_connect(button_run, "button-press-event") do
     if f !== nothing
         if get_gtk_property(radio1, :active, Bool)==true
             pic_name,t=draw_all_graph(PDI_resolution_heuristique,f)
             global filename=pic_name
             global taille=t
-            global b=true
-            println(filename)
+            #b=true
+            #signal_handler_block()
             #gtk_range_set_range(sl,1,t)
+            #sl.gtk_range_set_value(t)
             #set_gtk_property!(s,:digits,t)
             #set_gtk_property!(image_preview, :file, string(pic_name,"1"))
         elseif get_gtk_property(radio2, :active, Bool)==true
@@ -140,20 +143,17 @@ signal_connect(button_run, "button-press-event") do widget, event
 end
 
 function value_changed(widget)
-    value=get_gtk_property(sl,:value_pos,Int64)
+    i=get_gtk_property(sl,:value_pos,Int64)
+    #t= global taille
+    #f= global filename
     global taille
     global filename
-    global b
-
-    #println(taille)
-    println(string(filename,value))
-    if value<taille && b==true
-        set_gtk_property!(image_preview, :file, string(filename,value))
+    if value< taille
+        set_gtk_property(image_preview, :file, string( filename,value))
     end
-    #return i
+    return i
 end
-
-signal_connect(value_changed,sl,"value_changed")
+id = signal_connect(value_changed,sl,"value_changed")
 #=
  do
     global taille
