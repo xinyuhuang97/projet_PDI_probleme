@@ -1,6 +1,3 @@
-
-
-#Viewer object to add to Julia's display stack:
 using Gtk
 using Gtk.ShortNames, Gtk.GConstants
 #using GtkRange
@@ -8,10 +5,12 @@ using Gtk.ShortNames, Gtk.GConstants
 using Printf
 using GR
 include("draw_graph.jl")
-win = GtkWindow("Production and routing probleme")
 global filename
 global taille
 global b
+global win
+win = GtkWindow("Production and routing probleme")
+
 set_gtk_property!(win, :can_focus, false)
     gbox = GtkBox(:h)
         l1box = GtkBox(:v)
@@ -78,7 +77,10 @@ set_gtk_property!(win, :can_focus, false)
             #set_gtk_property!(sb_parameter_maxtime,:text,"Max time(minutes)")
             sb[1,1]=sb_parameter_gap
             sb[2,1]=sb_parameter_maxtime
+            set_gtk_property!(sb[1,1],:value,"None")
+            set_gtk_property!(sb[2,1],:value,"None")
             button_run = GtkButton("Run")
+            global sl
             sl = Scale(false, 1 ,100, 1)
             push!(l2box, radio1)
             push!(l2box, radio2)
@@ -88,6 +90,7 @@ set_gtk_property!(win, :can_focus, false)
             push!(l2box, sb)
             push!(l2box, sl)
             push!(l2box, button_run)
+
 
     push!(gbox, l2box)
     #push!(win, sl）
@@ -119,20 +122,42 @@ end
 
 
 signal_connect(button_run, "button-press-event") do widget, event
+    #gap=get_gtk_property(sb_parameter_gap, :text, String)
+    #println(gtk_frame_get_child(sb))
     if f !== nothing
         if get_gtk_property(radio1, :active, Bool)==true
+            #global sl
+            global win
+            #global sl
+            #Gtk.destroy(sl)
+            #gtk_widget_destroy(sl)
             pic_name,t=draw_all_graph(PDI_resolution_heuristique,f)
             global filename=pic_name
             global taille=t
             global b=true
             println(filename)
-            #gtk_range_set_range(sl,1,t)
+            #gtk_scale_new_with_range()
+            #set_gtk_property!(sl,upper_stepper_sensitivity,t)
+            #gtk_range_set_range()
+            #sl.set_range(1,t)
+            #sl = Scale(false, 1 ,t, 1)
+            #push!(l2box, sl)
+            #showall(win)
+            #gtk.range_set_range(sl,1,t)
             #set_gtk_property!(s,:digits,t)
             #set_gtk_property!(image_preview, :file, string(pic_name,"1"))
         elseif get_gtk_property(radio2, :active, Bool)==true
-            println("2")
+            pic_name,t=draw_all_graph(PDI_resolution_exacte,f)
+            global filename=pic_name
+            global taille=t
+            global b=true
+            println(filename)
         elseif get_gtk_property(radio3, :active, Bool)==true
-            println("3")
+            pic_name,t=draw_all_graph(PDI_branch_and_cut,f)
+            global filename=pic_name
+            global taille=t
+            global b=true
+            println(filename)
         else
             println("erreur")
         end
@@ -140,35 +165,44 @@ signal_connect(button_run, "button-press-event") do widget, event
 end
 
 function value_changed(widget)
-    value=get_gtk_property(sl,:value_pos,Int64)
+    #value=get_gtk_property(sl,:value_pos,Int64)
+    #global sl
+    a = Gtk.GAccessor.adjustment(sl)
+    value = Gtk.get_gtk_property(a,:value,Float64)
+    value = round(Int64, value)
+    #value=get_gtk_property(sl,:draw_value,Int64)
+    #println(get_gtk_property(sl,:value_pos,Int64),get_gtk_property(sl,:digits,Int64))
     global taille
     global filename
     global b
 
     #println(taille)
-    println(string(filename,value))
-    if value<taille && b==true
-        set_gtk_property!(image_preview, :file, string(filename,value))
+    #,sl.get_value_pos())
+    if value<=taille && b==true
+        println(string(filename,value,".png"))
+        set_gtk_property!(image_preview, :file, string(filename,value,".png"))
     end
     #return i
 end
 
-signal_connect(value_changed,sl,"value_changed")
-#=
- do
-    global taille
 
-    println(i)
+signal_connect(value_changed,sl,"value_changed") #do widget, event
+    #global taille
+
+    #println(i)
     #if value<i
-    #    set_gtk_property(image_preview, :file, string(filename,value))
+    #    set_gtk_property(image_preview, :file, string(filename,value,".png"))
     #end
-end=#
+#end
 label = GtkLabel("")
 GAccessor.text(label,"")
 
 showall(win)
 
 if !isinteractive()
-    @async Gtk.gtk_main()
-    Gtk.waitforsignal(win,:destroy)
+    c=Condition()
+    signal_connect(win, :destroy) do widget
+        notify(c)
+    end
+    wait(c)
 end
