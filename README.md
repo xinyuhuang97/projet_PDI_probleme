@@ -19,6 +19,7 @@ The first step has already been completed and the project is currently in progre
 </h3>
 
 <a href="https://github.com/xinyuhuang97/projet_PDI_probleme">https://github.com/xinyuhuang97/projet_PDI_probleme</a>
+\hline
 
 
 Date du projet: 2022.10(M2S1)
