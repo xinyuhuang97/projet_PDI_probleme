@@ -15,7 +15,8 @@ The first step has already been completed and the project is currently in progre
 
 -Update 9/12: Interface and final report completed
 
-For more information, please visit our Github repository:
+<h3>For more information, please visit our Github repository:
+</h3>
 
 <a href="https://github.com/xinyuhuang97/projet_PDI_probleme">https://github.com/xinyuhuang97/projet_PDI_probleme</a>
 
