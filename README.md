@@ -1,3 +1,25 @@
+Project Date: 2022.10(M2S1)
+
+Language: Julia (Solver: Cplex; Interface: gkt)
+
+The <a href="http://www-desir.lip6.fr/~fouilhoux/MAOA/Files/Projet_Production_Routing22-23.pdf">project</a> is based on three steps:
+
+<ul>
+ 	<li>Solve the PDI problem by heuristic resolution</li>
+ 	<li>Solve the PDI problem by exact MTZ resolution/branch-and-cut resolution</li>
+ 	<li>Evaluation and experimental phase</li>
+</ul>
+The first step has already been completed and the project is currently in progress.
+
+-Update 16/11: Part 2 improvement phase
+
+-Update 9/12: Interface and final report completed
+
+For more information, please visit our Github repository:
+
+<a href="https://github.com/xinyuhuang97/projet_PDI_probleme">https://github.com/xinyuhuang97/projet_PDI_probleme</a>
+
+
 Date du projet: 2022.10(M2S1)
 
 Langage:Julia(solveur : Cplex ; interface :gkt)
